@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fff4e2">
+  <title>今天吃什麼</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fff4e2;
+      --bg-soft: #f8ead0;
+      --panel: rgba(255, 250, 239, 0.9);
+      --panel-strong: #fffaf0;
+      --text: #182521;
+      --muted: #66746f;
+      --border: rgba(24, 37, 33, 0.12);
+      --accent: #f25a34;
+      --accent-2: #004840;
+      --accent-soft: rgba(242, 90, 52, 0.14);
+      --button-text: #fffaf0;
+      --danger: #b7372f;
+      --shadow: 0 18px 42px rgba(35, 30, 20, 0.12);
+      --radius: 8px;
+      --ease: cubic-bezier(.2, .8, .2, 1);
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #101310;
+      --bg-soft: #191c18;
+      --panel: rgba(29, 33, 29, 0.92);
+      --panel-strong: #20251f;
+      --text: #f5efe3;
+      --muted: #a5b0aa;
+      --border: rgba(245, 239, 227, 0.12);
+      --accent-soft: rgba(242, 90, 52, 0.2);
+      --button-text: #fffaf0;
+      --danger: #ff776f;
+      --shadow: 0 22px 56px rgba(0, 0, 0, 0.32);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg, var(--bg) 0%, var(--bg-soft) 100%);
+      color: var(--text);
+      font-family: ui-rounded, "SF Pro Rounded", "Avenir Next", "PingFang TC", "Noto Sans TC", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .app {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      box-shadow: 0 10px 26px rgba(0, 72, 64, 0.16);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.05;
+      text-wrap: pretty;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .time-card {
+      min-width: 154px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      text-align: right;
+      box-shadow: var(--shadow);
+    }
+
+    .clock {
+      color: var(--accent);
+      font-size: 24px;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.05;
+    }
+
+    .date {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 20px;
+    }
+
+    .meal-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .meal-tab {
+      display: flex;
+      min-height: 54px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel-strong);
+      color: var(--text);
+      font-weight: 850;
+      transition: transform 180ms var(--ease), background 180ms var(--ease), color 180ms var(--ease), border-color 180ms var(--ease);
+    }
+
+    .meal-tab:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in oklch, var(--accent), var(--border) 40%);
+    }
+
+    .meal-tab.active {
+      background: var(--accent);
+      color: var(--button-text);
+      border-color: transparent;
+    }
+
+    .result-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .count-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .result {
+      display: grid;
+      place-items: center;
+      min-height: 174px;
+      padding: 20px 0 12px;
+      text-align: center;
+    }
+
+    .result-name {
+      max-width: 100%;
+      margin: 0;
+      font-size: clamp(36px, 7vw, 70px);
+      line-height: 1.02;
+      font-weight: 900;
+      text-wrap: balance;
+    }
+
+    .result-name.rolling {
+      animation: pulsePick 420ms var(--ease) infinite alternate;
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 0 0 18px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+    }
+
+    .primary,
+    .secondary,
+    .ghost {
+      min-height: 52px;
+      border-radius: var(--radius);
+      font-weight: 850;
+      transition: transform 180ms var(--ease), filter 180ms var(--ease), border-color 180ms var(--ease);
+    }
+
+    .primary {
+      background: var(--accent);
+      color: var(--button-text);
+    }
+
+    .secondary {
+      padding: 0 16px;
+      border: 1px solid var(--border);
+      background: var(--panel-strong);
+      color: var(--text);
+    }
+
+    .ghost {
+      width: 52px;
+      border: 1px solid var(--border);
+      background: var(--panel-strong);
+      color: var(--accent);
+      font-size: 18px;
+    }
+
+    .primary:not(:disabled):hover,
+    .secondary:not(:disabled):hover,
+    .ghost:not(:disabled):hover {
+      transform: translateY(-1px);
+      filter: saturate(1.08);
+    }
+
+    .editor {
+      padding: 16px;
+      margin-top: 18px;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 52px;
+      gap: 10px;
+    }
+
+    input {
+      min-width: 0;
+      height: 52px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      background: var(--panel-strong);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    .box {
+      padding: 16px;
+    }
+
+    .box-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .box-head h2 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .food-list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .food-item {
+      display: grid;
+      grid-template-columns: 10px 1fr 42px;
+      align-items: center;
+      gap: 10px;
+      min-height: 54px;
+      padding: 8px 8px 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel-strong);
+    }
+
+    .food-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .food-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 800;
+    }
+
+    .delete {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius);
+      background: color-mix(in oklch, var(--danger), transparent 88%);
+      color: var(--danger);
+      font-weight: 900;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 190px;
+      padding: 20px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+      text-align: center;
+      font-weight: 750;
+    }
+
+    .settings {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .theme-toggle {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel-strong);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10;
+      max-width: min(360px, calc(100vw - 36px));
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel-strong);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      font-weight: 800;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes pulsePick {
+      from {
+        transform: scale(0.985);
+        opacity: 0.82;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        padding: 14px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .brand img {
+        width: 46px;
+        height: 46px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .time-card {
+        min-width: 122px;
+        padding: 9px 10px;
+      }
+
+      .clock {
+        font-size: 20px;
+      }
+
+      .meal-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .actions {
+        grid-template-columns: 1fr 52px;
+      }
+
+      .secondary {
+        grid-column: 1 / -1;
+        order: 3;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/app-icon.png" alt="今天吃什麼 logo">
+        <div>
+          <h1>今天吃什麼</h1>
+          <p id="meal-subtitle">讓今天少一個煩惱</p>
+        </div>
+      </div>
+      <div class="time-card" aria-live="polite">
+        <div class="clock" id="clock">--:--</div>
+        <div class="date" id="date">--</div>
+      </div>
+    </header>
+
+    <section class="shell">
+      <div>
+        <section class="panel hero" aria-labelledby="result-label">
+          <nav class="meal-row" id="meal-tabs" aria-label="選擇餐別"></nav>
+
+          <div class="result-head">
+            <span id="result-label">抽籤結果</span>
+            <span class="count-pill" id="food-count">0 個選項</span>
+          </div>
+
+          <div class="result">
+            <h2 class="result-name" id="result-name">要吃什麼？</h2>
+          </div>
+          <p class="status" id="status">按下開始抽籤，讓今天少一個煩惱。</p>
+
+          <div class="actions">
+            <button class="primary" id="roll-button">開始抽籤</button>
+            <button class="secondary" id="map-button" hidden>Google Maps 找附近餐廳</button>
+            <button class="ghost" id="reset-button" title="重置目前餐別" aria-label="重置目前餐別">↺</button>
+          </div>
+        </section>
+
+        <section class="panel editor" aria-label="新增食物">
+          <form class="input-row" id="add-form">
+            <input id="food-input" type="text" autocomplete="off" maxlength="24" placeholder="新增食物種類">
+            <button class="primary" type="submit" aria-label="新增">＋</button>
+          </form>
+        </section>
+      </div>
+
+      <aside class="panel box" aria-labelledby="box-title">
+        <div class="box-head">
+          <h2 id="box-title">抽獎箱</h2>
+          <span class="count-pill" id="side-count">0 種</span>
+        </div>
+        <ul class="food-list" id="food-list"></ul>
+        <div class="settings">
+          <span>清單儲存在這個瀏覽器</span>
+          <button class="theme-toggle" id="theme-toggle">切換深色</button>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const meals = {
+      breakfast: {
+        title: "早餐",
+        subtitle: "開啟今天的第一餐",
+        accent: "#e66d2e",
+        foods: ["蛋餅", "飯糰", "三明治", "蘿蔔糕", "燒餅油條", "早餐店漢堡", "豆漿店", "貝果", "粥", "鐵板麵"]
+      },
+      lunch: {
+        title: "午餐",
+        subtitle: "中場補給，吃飽再戰",
+        accent: "#17806d",
+        foods: ["台式便當", "牛肉麵", "咖哩飯", "水餃", "滷肉飯", "越南河粉", "韓式料理", "義大利麵", "日式定食", "海南雞飯"]
+      },
+      dinner: {
+        title: "晚餐",
+        subtitle: "今晚想好好吃點什麼",
+        accent: "#6462d7",
+        foods: ["火鍋", "燒肉", "拉麵", "壽司", "披薩", "泰式料理", "港式飲茶", "居酒屋", "小籠包", "牛排"]
+      },
+      lateNight: {
+        title: "宵夜",
+        subtitle: "深夜小確幸時間",
+        accent: "#aa519b",
+        foods: ["鹽酥雞", "滷味", "宵夜粥", "串燒", "泡麵加料", "豆花", "甜不辣", "關東煮", "雞排", "清粥小菜"]
+      }
+    };
+
+    const mealOrder = ["breakfast", "lunch", "dinner", "lateNight"];
+    const storageKey = "todayEatWhat.foodBoxes.v1";
+    const themeKey = "todayEatWhat.theme";
+
+    const state = {
+      selectedMeal: currentMealKey(),
+      boxes: loadBoxes(),
+      selectedFood: "",
+      rolling: false,
+      toastTimer: null
+    };
+
+    const els = {
+      root: document.documentElement,
+      mealTabs: document.getElementById("meal-tabs"),
+      mealSubtitle: document.getElementById("meal-subtitle"),
+      clock: document.getElementById("clock"),
+      date: document.getElementById("date"),
+      resultName: document.getElementById("result-name"),
+      status: document.getElementById("status"),
+      rollButton: document.getElementById("roll-button"),
+      mapButton: document.getElementById("map-button"),
+      resetButton: document.getElementById("reset-button"),
+      addForm: document.getElementById("add-form"),
+      foodInput: document.getElementById("food-input"),
+      foodList: document.getElementById("food-list"),
+      foodCount: document.getElementById("food-count"),
+      sideCount: document.getElementById("side-count"),
+      boxTitle: document.getElementById("box-title"),
+      themeToggle: document.getElementById("theme-toggle"),
+      toast: document.getElementById("toast")
+    };
+
+    init();
+
+    function init() {
+      applySavedTheme();
+      renderMealTabs();
+      render();
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      els.rollButton.addEventListener("click", rollFood);
+      els.resetButton.addEventListener("click", resetCurrentMeal);
+      els.mapButton.addEventListener("click", openMaps);
+      els.addForm.addEventListener("submit", addFood);
+      els.themeToggle.addEventListener("click", toggleTheme);
+    }
+
+    function currentMealKey() {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 10) return "breakfast";
+      if (hour >= 10 && hour < 15) return "lunch";
+      if (hour >= 15 && hour < 22) return "dinner";
+      return "lateNight";
+    }
+
+    function loadBoxes() {
+      const defaults = defaultBoxes();
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return defaults;
+        const parsed = JSON.parse(raw);
+        return Object.fromEntries(mealOrder.map((key) => [key, Array.isArray(parsed[key]) ? parsed[key] : defaults[key]]));
+      } catch {
+        return defaults;
+      }
+    }
+
+    function defaultBoxes() {
+      return Object.fromEntries(mealOrder.map((key) => [key, [...meals[key].foods]]));
+    }
+
+    function saveBoxes() {
+      localStorage.setItem(storageKey, JSON.stringify(state.boxes));
+    }
+
+    function renderMealTabs() {
+      els.mealTabs.innerHTML = "";
+      mealOrder.forEach((key) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "meal-tab";
+        button.textContent = meals[key].title;
+        button.addEventListener("click", () => {
+          if (state.rolling) return;
+          state.selectedMeal = key;
+          state.selectedFood = "";
+          render();
+        });
+        els.mealTabs.append(button);
+      });
+    }
+
+    function render() {
+      const meal = meals[state.selectedMeal];
+      const foods = state.boxes[state.selectedMeal] || [];
+      els.root.style.setProperty("--accent", meal.accent);
+      els.mealSubtitle.textContent = meal.subtitle;
+      els.resultName.textContent = state.selectedFood || `${meal.title}要吃什麼？`;
+      els.resultName.classList.toggle("rolling", state.rolling);
+      els.foodCount.textContent = `${foods.length} 個選項`;
+      els.sideCount.textContent = `${foods.length} 種`;
+      els.boxTitle.textContent = `${meal.title}抽獎箱`;
+      els.rollButton.textContent = state.rolling ? "抽籤中" : "開始抽籤";
+      els.rollButton.disabled = state.rolling || foods.length === 0;
+      els.mapButton.hidden = !state.selectedFood || state.rolling;
+
+      [...els.mealTabs.children].forEach((tab, index) => {
+        const key = mealOrder[index];
+        tab.classList.toggle("active", key === state.selectedMeal);
+        tab.setAttribute("aria-current", key === state.selectedMeal ? "true" : "false");
+      });
+
+      renderFoodList(foods);
+      if (!state.rolling) {
+        els.status.textContent = state.selectedFood ? "就是它了，附近找一下。" : "按下開始抽籤，讓今天少一個煩惱。";
+      }
+    }
+
+    function renderFoodList(foods) {
+      els.foodList.innerHTML = "";
+      if (foods.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "empty";
+        empty.textContent = "清單是空的。新增幾個選項，或按重置帶回預設食物。";
+        els.foodList.append(empty);
+        return;
+      }
+
+      foods.forEach((food) => {
+        const item = document.createElement("li");
+        item.className = "food-item";
+
+        const dot = document.createElement("span");
+        dot.className = "food-dot";
+
+        const name = document.createElement("span");
+        name.className = "food-name";
+        name.textContent = food;
+
+        const remove = document.createElement("button");
+        remove.className = "delete";
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.setAttribute("aria-label", `刪除 ${food}`);
+        remove.addEventListener("click", () => deleteFood(food));
+
+        item.append(dot, name, remove);
+        els.foodList.append(item);
+      });
+    }
+
+    function addFood(event) {
+      event.preventDefault();
+      const value = els.foodInput.value.trim();
+      if (!value) return;
+
+      const foods = state.boxes[state.selectedMeal] || [];
+      const exists = foods.some((food) => food.localeCompare(value, "zh-Hant", { sensitivity: "accent" }) === 0);
+      if (exists) {
+        els.foodInput.value = "";
+        showToast("抽獎箱裡已經有這個選項。");
+        return;
+      }
+
+      state.boxes[state.selectedMeal] = [value, ...foods];
+      els.foodInput.value = "";
+      saveBoxes();
+      render();
+      showToast(`已加入「${value}」。`);
+    }
+
+    function deleteFood(food) {
+      state.boxes[state.selectedMeal] = (state.boxes[state.selectedMeal] || []).filter((item) => item !== food);
+      if (state.selectedFood === food) state.selectedFood = "";
+      saveBoxes();
+      render();
+    }
+
+    function resetCurrentMeal() {
+      state.boxes[state.selectedMeal] = [...meals[state.selectedMeal].foods];
+      state.selectedFood = "";
+      saveBoxes();
+      render();
+      showToast(`${meals[state.selectedMeal].title}抽獎箱已重置。`);
+    }
+
+    function rollFood() {
+      const foods = [...(state.boxes[state.selectedMeal] || [])];
+      if (!foods.length || state.rolling) return;
+
+      state.rolling = true;
+      state.selectedFood = "";
+      els.status.textContent = "抽獎箱已就位...";
+      render();
+
+      const messages = [
+        "洗牌中，先把理智放旁邊。",
+        "命運正在翻菜單。",
+        "正在排除選擇障礙。",
+        "最後一輪，快要落定了。"
+      ];
+
+      let delay = 0;
+      const steps = 24;
+      for (let index = 0; index < steps; index += 1) {
+        delay += 45 + index * 9;
+        window.setTimeout(() => {
+          state.selectedFood = pickRandom(foods);
+          els.status.textContent = messages[Math.min(Math.floor(index / 6), messages.length - 1)];
+          render();
+
+          if (index === steps - 1) {
+            window.setTimeout(() => {
+              state.selectedFood = pickRandom(foods);
+              state.rolling = false;
+              render();
+            }, 450);
+          }
+        }, delay);
+      }
+    }
+
+    function pickRandom(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function openMaps() {
+      if (!state.selectedFood) return;
+      const query = encodeURIComponent(`${state.selectedFood} 附近餐廳`);
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank", "noopener,noreferrer");
+    }
+
+    function updateClock() {
+      const now = new Date();
+      els.clock.textContent = now.toLocaleTimeString("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+      els.date.textContent = now.toLocaleDateString("zh-TW", {
+        month: "long",
+        day: "numeric",
+        weekday: "long"
+      });
+
+      if (!state.selectedFood && !state.rolling && state.selectedMeal === currentMealKey()) return;
+    }
+
+    function applySavedTheme() {
+      const saved = localStorage.getItem(themeKey);
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme = saved || (prefersDark ? "dark" : "light");
+      document.body.dataset.theme = theme;
+      els.themeToggle.textContent = theme === "dark" ? "切換淺色" : "切換深色";
+    }
+
+    function toggleTheme() {
+      const next = document.body.dataset.theme === "dark" ? "light" : "dark";
+      document.body.dataset.theme = next;
+      localStorage.setItem(themeKey, next);
+      els.themeToggle.textContent = next === "dark" ? "切換淺色" : "切換深色";
+    }
+
+    function showToast(message) {
+      window.clearTimeout(state.toastTimer);
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      state.toastTimer = window.setTimeout(() => {
+        els.toast.classList.remove("show");
+      }, 2200);
+    }
+  </script>
+</body>
+</html>
